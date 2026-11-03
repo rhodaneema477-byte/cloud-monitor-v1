@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Monitor V1</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#0b1020;color:#eef2ff;
+ font-family:Arial,sans-serif;padding:20px
+}
+header{padding:18px 0;border-bottom:1px solid #29334b}
+h1{font-size:25px;color:#60a5fa}
+small{color:#94a3b8}
+.card{
+ background:#151e32;border:1px solid #29334b;
+ border-radius:13px;padding:17px;margin:16px 0
+}
+input,button{
+ padding:12px;border-radius:8px;border:0;
+ font-size:15px;margin:4px 0
+}
+input{background:#25314a;color:white;width:100%}
+button{background:#2563eb;color:white;cursor:pointer}
+button.stop{background:#475569}
+button.delete{background:#b91c1c}
+.status{color:#4ade80}
+.task{border-bottom:1px solid #29334b;padding:12px 0}
+#activity{max-height:180px;overflow:auto;color:#cbd5e1}
+footer{color:#94a3b8;font-size:12px;margin-top:25px}
+</style>
+</head>
+<body>
+
+<header>
+ <h1>☁ CLOUD MONITOR V1</h1>
+ <small>Personal monitoring dashboard</small>
+</header>
+
+<div class="card">
+ <h3>System overview</h3>
+ <p>Monitoring tasks: <strong id="total">0</strong></p>
+ <p>Running tasks: <strong id="running">0</strong></p>
+ <p class="status">● Dashboard active</p>
+ <small>This is a local demo, not a cloud server.</small>
+</div>
+
+<div class="card">
+ <h3>Add monitoring task</h3>
+ <input id="taskName" placeholder="Enter task name">
+ <input id="taskDetails" placeholder="Enter what to monitor">
+ <button onclick="addTask()">+ Add task</button>
+</div>
+
+<div class="card">
+ <h3>My monitoring tasks</h3>
+ <div id="tasks"></div>
+</div>
+
+<div class="card">
+ <h3>Activity history</h3>
+ <div id="activity">System initialized.</div>
+</div>
+
+<footer>
+ CLOUD MONITOR V1 · DEMONSTRATION VERSION
+</footer>
+
+<script>
+let tasks=JSON.parse(localStorage.getItem("cloudTasks")||"[]");
+let historyLog=[];
+
+function save(){
+ localStorage.setItem("cloudTasks",JSON.stringify(tasks));
+ render();
+}
+
+function log(message){
+ historyLog.unshift(new Date().toLocaleTimeString()+" — "+message);
+ historyLog=historyLog.slice(0,30);
+ document.getElementById("activity").innerHTML=
+ historyLog.map(x=>"<p>"+x+"</p>").join("");
+}
+
+function addTask(){
+ let name=document.getElementById("taskName").value.trim();
+ let details=document.getElementById("taskDetails").value.trim();
+
+ if(!name){alert("Enter a task name first.");return;}
+
+ tasks.push({
+  id:Date.now(),
+  name:name,
+  details:details,
+  running:false
+ });
+
+ document.getElementById("taskName").value="";
+ document.getElementById("taskDetails").value="";
+
+ save();
+ log("Added task: "+name);
+}
+
+function toggleTask(id){
+ let task=tasks.find(t=>t.id===id);
+ if(!task)return;
+ task.running=!task.running;
+ save();
+ log(task.name+(task.running?" started":" paused"));
+}
+
+function deleteTask(id){
+ let task=tasks.find(t=>t.id===id);
+ if(!task)return;
+ if(!confirm("Delete "+task.name+"?"))return;
+ tasks=tasks.filter(t=>t.id!==id);
+ save();
+ log("Deleted task: "+task.name);
+}
+
+function render(){
+ document.getElementById("total").textContent=tasks.length;
+ document.getElementById("running").textContent=
+ tasks.filter(t=>t.running).length;
+
+ let container=document.getElementById("tasks");
+ container.innerHTML="";
+
+ if(!tasks.length){
+  container.textContent="No tasks added yet.";
+  return;
+ }
+
+ tasks.forEach(task=>{
+  let item=document.createElement("div");
+  item.className="task";
+
+  let title=document.createElement("strong");
+  title.textContent=task.name;
+
+  let description=document.createElement("p");
+  description.textContent=task.details;
+
+  let status=document.createElement("p");
+  status.className=task.running?"status":"";
+  status.textContent=task.running?"● Running (demo)":"○ Paused";
+
+  let toggle=document.createElement("button");
+  toggle.textContent=task.running?"Pause":"Start";
+  toggle.className=task.running?"stop":"";
+  toggle.onclick=()=>toggleTask(task.id);
+
+  let remove=document.createElement("button");
+  remove.textContent="Delete";
+  remove.className="delete";
+  remove.onclick=()=>deleteTask(task.id);
+
+  item.append(title,description,status,toggle,remove);
+  container.appendChild(item);
+ });
+}
+
+render();
+</script>
+</body>
+  </html>
+  
