@@ -1,108 +1,10 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cloud Monitor V2</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#0b1020;color:#eef2ff;font-family:Arial;padding:15px}
-header{padding:15px 0;border-bottom:1px solid #29334b}
-h1{color:#60a5fa;font-size:24px}
-small,.muted{color:#94a3b8}
-.card{background:#151e32;border:1px solid #29334b;border-radius:13px;padding:15px;margin:15px 0}
-input,select,button{width:100%;padding:12px;margin:5px 0;border:0;border-radius:8px;font-size:15px}
-input,select{background:#25314a;color:white}
-button{background:#2563eb;color:white}
-.stop{background:#475569}
-.delete{background:#b91c1c}
-.green{color:#4ade80}
-.red{color:#f87171}
-.task,.signal{border-bottom:1px solid #29334b;padding:12px 0}
-.timer{font-size:20px;color:#60a5fa;font-weight:bold}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{background:#202c43;padding:12px;border-radius:9px}
-.stat strong{display:block;font-size:23px;margin-top:5px}
-.signal{border:1px solid #34435f;border-radius:9px;margin:10px 0}
-footer{margin:25px 0;color:#94a3b8;font-size:12px}
-</style>
-</head>
-<body>
-
-<header>
-<h1>☁ CLOUD MONITOR V2</h1>
-<small>Personal strategy monitoring dashboard</small>
-</header>
-
-<div class="card">
-<h3>System overview</h3>
-<p>Monitoring tasks: <strong id="total">0</strong></p>
-<p>Running tasks: <strong id="running">0</strong></p>
-<p>Strategies: <strong id="strategyCount">0</strong></p>
-<p>Running strategies: <strong id="strategyRunning">0</strong></p>
-<p>Dashboard time: <strong id="clock">--:--:--</strong></p>
-<p class="green">● Dashboard active</p>
-<small>Browser demonstration, not a cloud server.</small>
-</div>
-
-<div class="card">
-<h3>Add monitoring task</h3>
-<input id="taskName" placeholder="Task name">
-<input id="taskDetails" placeholder="What to monitor">
-<button onclick="addTask()">+ Add task</button>
-<div id="tasks"></div>
-</div>
-
-<div class="card">
-<h3>Strategy Manager</h3>
-<input id="strategyName" placeholder="Strategy name">
-<input id="strategyDetails" placeholder="Strategy description">
-<button onclick="addStrategy()">+ Add strategy</button>
-<div id="strategies"></div>
-</div>
-
-<div class="card">
-<h3>Record simulated signal</h3>
-<select id="signalStrategy"></select>
-<select id="direction">
-<option value="BUY">BUY</option>
-<option value="SELL">SELL</option>
-</select>
-<input id="entry" type="number" step="any" placeholder="Entry price">
-<input id="sl" type="number" step="any" placeholder="ST / Stop Loss">
-<input id="tp" type="number" step="any" placeholder="TP / Take Profit">
-<button onclick="addSignal()">+ Save simulated signal</button>
-<small>Educational simulation only. No real trades are placed.</small>
-</div>
-
-<div class="card">
-<h3>Past 3 days — statistics</h3>
-<div class="stats">
-<div class="stat">Total signals<strong id="signalTotal">0</strong></div>
-<div class="stat">TP reached<strong class="green" id="tpCount">0</strong></div>
-<div class="stat">ST reached<strong class="red" id="slCount">0</strong></div>
-<div class="stat">Active<strong id="activeCount">0</strong></div>
-</div>
-<p class="muted">Statistics cover the last 72 hours.</p>
-</div>
-
-<div class="card">
-<h3>Signal history</h3>
-<div id="signalHistory">No signals recorded.</div>
-</div>
-
-<div class="card">
-<h3>Activity history</h3>
-<div id="activity"></div>
-</div>
-
-<footer>CLOUD MONITOR V2 · SIMULATION ONLY</footer>
-
-<script>
 function load(key){
- try{return JSON.parse(localStorage.getItem(key))||[]}
- catch(e){return []}
+ try{
+  return JSON.parse(localStorage.getItem(key))||[];
+ }catch(e){
+  return [];
+ }
 }
 
 let tasks=load("cloudTasks");
@@ -135,13 +37,26 @@ function timer(seconds){
  return [h,m,s].map(n=>String(n).padStart(2,"0")).join(":");
 }
 
+// MONITORING TASKS
+
 function addTask(){
  let name=document.getElementById("taskName").value.trim();
  let details=document.getElementById("taskDetails").value;
+
  if(!name)return alert("Enter a task name.");
- tasks.push({id:Date.now(),name,details,running:false,startedAt:null,elapsed:0});
+
+ tasks.push({
+  id:Date.now(),
+  name,
+  details,
+  running:false,
+  startedAt:null,
+  elapsed:0
+ });
+
  document.getElementById("taskName").value="";
  document.getElementById("taskDetails").value="";
+
  log("Task added: "+name);
  render();
 }
@@ -149,6 +64,7 @@ function addTask(){
 function toggleTask(id){
  let t=tasks.find(x=>x.id===id);
  if(!t)return;
+
  if(t.running){
   t.elapsed=elapsed(t.startedAt,t.elapsed);
   t.startedAt=null;
@@ -157,6 +73,7 @@ function toggleTask(id){
   t.startedAt=Date.now();
   t.running=true;
  }
+
  log(t.name+(t.running?" started":" paused"));
  save();
  render();
@@ -169,16 +86,26 @@ function deleteTask(id){
  render();
 }
 
+// STRATEGY MANAGER
+
 function addStrategy(){
  let name=document.getElementById("strategyName").value.trim();
  let details=document.getElementById("strategyDetails").value;
+
  if(!name)return alert("Enter a strategy name.");
+
  strategies.push({
-  id:Date.now(),name,details,
-  running:false,startedAt:null,elapsed:0
+  id:Date.now(),
+  name,
+  details,
+  running:false,
+  startedAt:null,
+  elapsed:0
  });
+
  document.getElementById("strategyName").value="";
  document.getElementById("strategyDetails").value="";
+
  log("Strategy added: "+name);
  render();
 }
@@ -186,6 +113,7 @@ function addStrategy(){
 function toggleStrategy(id){
  let s=strategies.find(x=>x.id===id);
  if(!s)return;
+
  if(s.running){
   s.elapsed=elapsed(s.startedAt,s.elapsed);
   s.startedAt=null;
@@ -194,6 +122,7 @@ function toggleStrategy(id){
   s.startedAt=Date.now();
   s.running=true;
  }
+
  log(s.name+(s.running?" started":" paused"));
  save();
  render();
@@ -206,30 +135,50 @@ function deleteStrategy(id){
  render();
 }
 
+// SIMULATED SIGNALS
+
 function addSignal(){
- let sid=Number(document.getElementById("signalStrategy").value);
- let strategy=strategies.find(s=>s.id===sid);
+ let select=document.getElementById("signalStrategy");
+ let sid=select.value;
+ let strategy=strategies.find(s=>String(s.id)===sid);
+
  let direction=document.getElementById("direction").value;
+
  let entryValue=document.getElementById("entry").value;
  let slValue=document.getElementById("sl").value;
  let tpValue=document.getElementById("tp").value;
- let entry=Number(entryValue), sl=Number(slValue), tp=Number(tpValue);
 
- if(!strategy)return alert("Add a strategy first.");
+ let entry=Number(entryValue);
+ let sl=Number(slValue);
+ let tp=Number(tpValue);
+
+ if(!strategy){
+  return alert("Please select a strategy.");
+ }
+
  if(!entryValue||!slValue||!tpValue||
- ![entry,sl,tp].every(Number.isFinite))
- return alert("Enter all three prices.");
+ ![entry,sl,tp].every(Number.isFinite)){
+  return alert("Enter all three prices.");
+ }
 
- if(direction==="BUY" && !(sl<entry && tp>entry))
- return alert("For a BUY simulation, ST must be below entry and TP above entry.");
+ if(direction==="BUY" && !(sl<entry && tp>entry)){
+  return alert("For BUY simulation, ST must be below entry and TP above entry.");
+ }
 
- if(direction==="SELL" && !(sl>entry && tp<entry))
- return alert("For a SELL simulation, ST must be above entry and TP below entry.");
+ if(direction==="SELL" && !(sl>entry && tp<entry)){
+  return alert("For SELL simulation, ST must be above entry and TP below entry.");
+ }
 
  signals.unshift({
-  id:Date.now(),strategyId:sid,
-  strategyName:strategy.name,direction,
-  entry,sl,tp,status:"ACTIVE",createdAt:Date.now()
+  id:Date.now(),
+  strategyId:sid,
+  strategyName:strategy.name,
+  direction,
+  entry,
+  sl,
+  tp,
+  status:"ACTIVE",
+  createdAt:Date.now()
  });
 
  document.getElementById("entry").value="";
@@ -242,52 +191,75 @@ function addSignal(){
 
 function setSignalStatus(id,status){
  let s=signals.find(x=>x.id===id);
+
  if(!s||s.status!=="ACTIVE")return;
+
  s.status=status;
+
  log("Signal marked "+status+": "+s.strategyName);
  save();
  render();
 }
 
+// RENDER MONITORING TASKS
+
 function renderTasks(){
  document.getElementById("total").textContent=tasks.length;
- document.getElementById("running").textContent=tasks.filter(t=>t.running).length;
+ document.getElementById("running").textContent=
+  tasks.filter(t=>t.running).length;
+
  let box=document.getElementById("tasks");
  box.replaceChildren();
 
- if(!tasks.length){box.textContent="No tasks added yet.";return;}
+ if(!tasks.length){
+  box.textContent="No tasks added yet.";
+  return;
+ }
 
  tasks.forEach(t=>{
   let div=document.createElement("div");
   div.className="task";
+
   let p=document.createElement("p");
   p.textContent=t.name+" — "+(t.details||"No description");
+
   let tm=document.createElement("p");
   tm.className="timer";
   tm.textContent=timer(elapsed(t.startedAt,t.elapsed));
+
   let status=document.createElement("p");
   status.className=t.running?"green":"muted";
   status.textContent=t.running?"● Running (demo)":"○ Paused";
+
   let btn=document.createElement("button");
   btn.className=t.running?"stop":"";
   btn.textContent=t.running?"Pause":"Start";
   btn.onclick=()=>toggleTask(t.id);
+
   let del=document.createElement("button");
   del.className="delete";
   del.textContent="Delete";
   del.onclick=()=>deleteTask(t.id);
+
   div.append(p,tm,status,btn,del);
   box.append(div);
  });
 }
 
+// RENDER STRATEGIES WITHOUT RESETTING SELECTION
+
 function renderStrategies(){
  document.getElementById("strategyCount").textContent=strategies.length;
- document.getElementById("strategyRunning").textContent=strategies.filter(s=>s.running).length;
+ document.getElementById("strategyRunning").textContent=
+  strategies.filter(s=>s.running).length;
 
  let box=document.getElementById("strategies");
- box.replaceChildren();
  let select=document.getElementById("signalStrategy");
+
+ // Remember the selected strategy
+ let selected=select.value;
+
+ box.replaceChildren();
  select.replaceChildren();
 
  let option=document.createElement("option");
@@ -297,88 +269,135 @@ function renderStrategies(){
 
  strategies.forEach(s=>{
   let opt=document.createElement("option");
-  opt.value=s.id;
+  opt.value=String(s.id);
   opt.textContent=s.name;
   select.append(opt);
 
   let div=document.createElement("div");
   div.className="task";
+
   let name=document.createElement("strong");
   name.textContent=s.name;
+
   let desc=document.createElement("p");
   desc.textContent=s.details||"No description";
+
   let tm=document.createElement("p");
   tm.className="timer";
+  tm.id="strategy-timer-"+s.id;
   tm.textContent=timer(elapsed(s.startedAt,s.elapsed));
+
   let status=document.createElement("p");
   status.className=s.running?"green":"muted";
   status.textContent=s.running?"● Running":"○ Paused";
+
   let btn=document.createElement("button");
   btn.className=s.running?"stop":"";
   btn.textContent=s.running?"Pause":"Start";
   btn.onclick=()=>toggleStrategy(s.id);
+
   let del=document.createElement("button");
   del.className="delete";
   del.textContent="Delete";
   del.onclick=()=>deleteStrategy(s.id);
+
   div.append(name,desc,tm,status,btn,del);
   box.append(div);
  });
+
+ // Restore selection after rebuilding options
+ select.value=strategies.some(s=>String(s.id)===selected)
+  ?selected:"";
 }
 
+// THREE-DAY STATISTICS
+
 function renderStats(){
- let cutoff=Date.now()-3*24*60*60*1000;
+ let cutoff=Date.now()-72*60*60*1000;
+
  let recent=signals.filter(s=>s.createdAt>=cutoff);
+
  document.getElementById("signalTotal").textContent=recent.length;
- document.getElementById("tpCount").textContent=recent.filter(s=>s.status==="TP").length;
- document.getElementById("slCount").textContent=recent.filter(s=>s.status==="ST").length;
- document.getElementById("activeCount").textContent=recent.filter(s=>s.status==="ACTIVE").length;
+
+ document.getElementById("tpCount").textContent=
+  recent.filter(s=>s.status==="TP").length;
+
+ document.getElementById("slCount").textContent=
+  recent.filter(s=>s.status==="ST").length;
+
+ document.getElementById("activeCount").textContent=
+  recent.filter(s=>s.status==="ACTIVE").length;
 }
+
+// SIGNAL HISTORY
 
 function renderSignals(){
  let box=document.getElementById("signalHistory");
  box.replaceChildren();
 
- if(!signals.length){box.textContent="No signals recorded yet.";return;}
+ if(!signals.length){
+  box.textContent="No signals recorded yet.";
+  return;
+ }
 
  signals.forEach(s=>{
   let div=document.createElement("div");
   div.className="signal";
+
   let title=document.createElement("strong");
   title.textContent=s.strategyName+" — "+s.direction;
+
   let info=document.createElement("p");
-  info.textContent="Entry: "+s.entry+" | ST: "+s.sl+" | TP: "+s.tp;
+  info.textContent=
+   "Entry: "+s.entry+" | ST: "+s.sl+" | TP: "+s.tp;
+
   let date=document.createElement("small");
   date.textContent=new Date(s.createdAt).toLocaleString();
+
   let status=document.createElement("p");
   status.textContent="Status: "+s.status;
-  status.className=s.status==="TP"?"green":s.status==="ST"?"red":"muted";
+  status.className=
+   s.status==="TP"?"green":
+   s.status==="ST"?"red":"muted";
+
   div.append(title,info,date,status);
 
   if(s.status==="ACTIVE"){
    let tp=document.createElement("button");
    tp.textContent="Mark TP reached (simulation)";
    tp.onclick=()=>setSignalStatus(s.id,"TP");
+
    let st=document.createElement("button");
    st.className="stop";
    st.textContent="Mark ST reached (simulation)";
    st.onclick=()=>setSignalStatus(s.id,"ST");
+
    div.append(tp,st);
   }
+
   box.append(div);
  });
 }
 
+// ACTIVITY HISTORY
+
 function renderLogs(){
  let box=document.getElementById("activity");
  box.replaceChildren();
- if(!logs.length){box.textContent="System initialized.";return;}
+
+ if(!logs.length){
+  box.textContent="System initialized.";
+  return;
+ }
+
  logs.forEach(x=>{
   let p=document.createElement("p");
   p.textContent=x;
   box.append(p);
  });
 }
+
+// FULL DASHBOARD
 
 function render(){
  renderTasks();
@@ -388,15 +407,28 @@ function render(){
  renderLogs();
 }
 
+// UPDATE TIMERS WITHOUT REBUILDING STRATEGY DROPDOWN
+
 function tick(){
- document.getElementById("clock").textContent=new Date().toLocaleTimeString();
+ document.getElementById("clock").textContent=
+  new Date().toLocaleTimeString();
+
  renderTasks();
- renderStrategies();
+
+ strategies.forEach(s=>{
+  let timerElement=document.getElementById(
+   "strategy-timer-"+s.id
+  );
+
+  if(timerElement){
+   timerElement.textContent=
+    timer(elapsed(s.startedAt,s.elapsed));
+  }
+ });
 }
+
+// START DASHBOARD
 
 render();
 tick();
 setInterval(tick,1000);
-</script>
-</body>
-</html>
