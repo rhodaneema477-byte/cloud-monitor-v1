@@ -9,7 +9,7 @@
 *{box-sizing:border-box}
 body{
  margin:0;background:#0b1020;color:#eef2ff;
- font-family:Arial,sans-serif;padding:20px
+ font-family:Arial,sans-serif;padding:16px
 }
 header{padding:18px 0;border-bottom:1px solid #29334b}
 h1{font-size:25px;color:#60a5fa}
@@ -28,73 +28,100 @@ button.stop{background:#475569}
 button.delete{background:#b91c1c}
 .status{color:#4ade80}
 .task{border-bottom:1px solid #29334b;padding:12px 0}
-#activity{max-height:180px;overflow:auto;color:#cbd5e1}
+.metric{font-size:20px;color:#60a5fa;font-weight:bold}
 footer{color:#94a3b8;font-size:12px;margin-top:25px}
 </style>
 </head>
 <body>
 
 <header>
- <h1>☁ CLOUD MONITOR V1</h1>
- <small>Personal monitoring dashboard</small>
+<h1>☁ CLOUD MONITOR V1</h1>
+<small>Personal monitoring dashboard</small>
 </header>
 
 <div class="card">
- <h3>System overview</h3>
- <p>Monitoring tasks: <strong id="total">0</strong></p>
- <p>Running tasks: <strong id="running">0</strong></p>
- <p class="status">● Dashboard active</p>
- <small>This is a local demo, not a cloud server.</small>
+<h3>System overview</h3>
+<p>Monitoring tasks: <strong id="total">0</strong></p>
+<p>Running tasks: <strong id="running">0</strong></p>
+<p>Dashboard time: <strong id="clock">--:--:--</strong></p>
+<p class="status">● Dashboard active</p>
+<small>This is a local demonstration, not a cloud server.</small>
 </div>
 
 <div class="card">
- <h3>Add monitoring task</h3>
- <input id="taskName" placeholder="Enter task name">
- <input id="taskDetails" placeholder="Enter what to monitor">
- <button onclick="addTask()">+ Add task</button>
+<h3>Add monitoring task</h3>
+<input id="taskName" placeholder="Enter task name">
+<input id="taskDetails" placeholder="Enter what to monitor">
+<button onclick="addTask()">+ Add task</button>
 </div>
 
 <div class="card">
- <h3>My monitoring tasks</h3>
- <div id="tasks"></div>
+<h3>My monitoring tasks</h3>
+<div id="tasks"></div>
 </div>
 
 <div class="card">
- <h3>Activity history</h3>
- <div id="activity">System initialized.</div>
+<h3>Activity history</h3>
+<div id="activity">System initialized.</div>
 </div>
 
 <footer>
- CLOUD MONITOR V1 · DEMONSTRATION VERSION
+CLOUD MONITOR V1 · LIVE TIMER DEMONSTRATION
 </footer>
 
 <script>
 let tasks=JSON.parse(localStorage.getItem("cloudTasks")||"[]");
-let historyLog=[];
+let historyLog=JSON.parse(localStorage.getItem("cloudHistory")||"[]");
+
+tasks.forEach(task=>{
+ if(task.running && !task.startedAt){
+  task.startedAt=Date.now();
+ }
+});
 
 function save(){
  localStorage.setItem("cloudTasks",JSON.stringify(tasks));
- render();
 }
 
 function log(message){
  historyLog.unshift(new Date().toLocaleTimeString()+" — "+message);
  historyLog=historyLog.slice(0,30);
- document.getElementById("activity").innerHTML=
- historyLog.map(x=>"<p>"+x+"</p>").join("");
+ localStorage.setItem("cloudHistory",JSON.stringify(historyLog));
+ renderHistory();
+}
+
+function renderHistory(){
+ document.getElementById("activity").replaceChildren();
+ historyLog.forEach(message=>{
+  let p=document.createElement("p");
+  p.textContent=message;
+  document.getElementById("activity").appendChild(p);
+ });
+}
+
+function formatTime(seconds){
+ let h=Math.floor(seconds/3600);
+ let m=Math.floor((seconds%3600)/60);
+ let s=seconds%60;
+ return [h,m,s].map(n=>String(n).padStart(2,"0")).join(":");
 }
 
 function addTask(){
  let name=document.getElementById("taskName").value.trim();
  let details=document.getElementById("taskDetails").value.trim();
 
- if(!name){alert("Enter a task name first.");return;}
+ if(!name){
+  alert("Enter a task name first.");
+  return;
+ }
 
  tasks.push({
   id:Date.now(),
   name:name,
   details:details,
-  running:false
+  running:false,
+  startedAt:null,
+  lastCheckAt:null
  });
 
  document.getElementById("taskName").value="";
@@ -102,23 +129,37 @@ function addTask(){
 
  save();
  log("Added task: "+name);
+ render();
 }
 
 function toggleTask(id){
  let task=tasks.find(t=>t.id===id);
  if(!task)return;
+
  task.running=!task.running;
+
+ if(task.running){
+  task.startedAt=Date.now();
+  task.lastCheckAt=Date.now();
+ }else{
+  task.startedAt=null;
+ }
+
  save();
  log(task.name+(task.running?" started":" paused"));
+ render();
 }
 
 function deleteTask(id){
  let task=tasks.find(t=>t.id===id);
  if(!task)return;
+
  if(!confirm("Delete "+task.name+"?"))return;
+
  tasks=tasks.filter(t=>t.id!==id);
  save();
  log("Deleted task: "+task.name);
+ render();
 }
 
 function render(){
@@ -127,7 +168,7 @@ function render(){
  tasks.filter(t=>t.running).length;
 
  let container=document.getElementById("tasks");
- container.innerHTML="";
+ container.replaceChildren();
 
  if(!tasks.length){
   container.textContent="No tasks added yet.";
@@ -142,11 +183,21 @@ function render(){
   title.textContent=task.name;
 
   let description=document.createElement("p");
-  description.textContent=task.details;
+  description.textContent=task.details||"No description";
 
   let status=document.createElement("p");
   status.className=task.running?"status":"";
   status.textContent=task.running?"● Running (demo)":"○ Paused";
+
+  let timer=document.createElement("p");
+  timer.className="metric";
+  let elapsed=task.running&&task.startedAt?
+   Math.floor((Date.now()-task.startedAt)/1000):0;
+  timer.textContent=formatTime(elapsed);
+
+  let check=document.createElement("small");
+  check.textContent="Last demo update: "+
+   (task.running?new Date(task.lastCheckAt||Date.now()).toLocaleTimeString():"Paused");
 
   let toggle=document.createElement("button");
   toggle.textContent=task.running?"Pause":"Start";
@@ -158,13 +209,33 @@ function render(){
   remove.className="delete";
   remove.onclick=()=>deleteTask(task.id);
 
-  item.append(title,description,status,toggle,remove);
+  item.append(title,description,status,timer,check,
+              document.createElement("br"),toggle,remove);
   container.appendChild(item);
  });
 }
 
+function updateDashboard(){
+ document.getElementById("clock").textContent=
+ new Date().toLocaleTimeString();
+
+ let changed=false;
+ tasks.forEach(task=>{
+  if(task.running){
+   task.lastCheckAt=Date.now();
+   changed=true;
+  }
+ });
+
+ if(changed)save();
+ render();
+}
+
+renderHistory();
 render();
+updateDashboard();
+setInterval(updateDashboard,1000);
 </script>
 </body>
-  </html>
-  
+ </html>
+ 
